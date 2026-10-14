@@ -1,0 +1,10 @@
+{
+  "name": "钓鱼真探",
+  "short_name": "钓鱼真探",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f5ef",
+  "theme_color": "#194f40",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

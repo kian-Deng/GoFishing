@@ -1,0 +1,28 @@
+{
+  "name": "gofishing",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c green,cyan \"npm run dev -w @fishing/api\" \"npm run dev -w @fishing/web\"",
+    "dev:mobile": "npm run dev:mobile -w @fishing/web",
+    "setup:mobile": "npm run setup:mobile -w @fishing/web",
+    "build": "npm run build -w @fishing/api && npm run build -w @fishing/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run build -w @fishing/api && vitest run",
+    "start": "npm run start -w @fishing/api",
+    "format": "prettier --write apps packages tests docs README.md *.json *.yaml *.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.10",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

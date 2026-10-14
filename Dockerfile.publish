@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1
+ARG PREVIOUS_IMAGE=node:24-alpine
+FROM ${PREVIOUS_IMAGE} AS previous
+
+FROM node:24-alpine AS sources
+WORKDIR /app
+COPY package*.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/shared/package.json packages/shared/package.json
+RUN npm ci
+COPY . .
+
+FROM sources AS all-build
+RUN npm run build && npm prune --omit=dev
+FROM sources AS server-build
+RUN npm run build -w @fishing/api && npm prune --omit=dev
+FROM sources AS web-build
+RUN npm run build -w @fishing/web
+
+FROM node:24-alpine AS base
+WORKDIR /app
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=3100
+RUN mkdir -p /app/data /app/uploads && chown -R node:node /app/data /app/uploads
+USER node
+EXPOSE 3100
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s CMD node -e "fetch('http://127.0.0.1:3100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "apps/api/dist/apps/api/src/main.js"]
+
+FROM base AS all
+COPY --from=all-build --chown=node:node /app/node_modules ./node_modules
+COPY --from=all-build --chown=node:node /app/apps/api/dist ./apps/api/dist
+COPY --from=all-build --chown=node:node /app/apps/api/package.json ./apps/api/package.json
+COPY --from=all-build --chown=node:node /app/apps/web/dist ./apps/web/dist
+COPY --from=all-build --chown=node:node /app/package.json ./package.json
+
+FROM base AS server
+COPY --from=server-build --chown=node:node /app/node_modules ./node_modules
+COPY --from=server-build --chown=node:node /app/apps/api/dist ./apps/api/dist
+COPY --from=server-build --chown=node:node /app/apps/api/package.json ./apps/api/package.json
+COPY --from=server-build --chown=node:node /app/package.json ./package.json
+COPY --from=previous --chown=node:node /app/apps/web/dist ./apps/web/dist
+
+FROM base AS web
+COPY --from=previous --chown=node:node /app/node_modules ./node_modules
+COPY --from=previous --chown=node:node /app/apps/api/dist ./apps/api/dist
+COPY --from=previous --chown=node:node /app/apps/api/package.json ./apps/api/package.json
+COPY --from=previous --chown=node:node /app/package.json ./package.json
+COPY --from=web-build --chown=node:node /app/apps/web/dist ./apps/web/dist

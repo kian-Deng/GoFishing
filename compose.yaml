@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    ports:
+      - '127.0.0.1:${APP_PORT:-3100}:3100'
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      HOST: 0.0.0.0
+      PORT: 3100
+      DEV_AUTH: ${DEV_AUTH:-false}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DATA_DRIVER: ${DATA_DRIVER:-file}
+      DATABASE_URL: ${DATABASE_URL:-}
+      DATA_DIR: /app/data
+      UPLOAD_DIR: /app/uploads
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-disabled}
+      QWEATHER_HOST: ${QWEATHER_HOST:-}
+      QWEATHER_API_KEY: ${QWEATHER_API_KEY:-}
+    volumes:
+      - fishing-data:/app/data
+      - fishing-uploads:/app/uploads
+    restart: unless-stopped
+  db:
+    image: postgis/postgis:17-3.5
+    profiles: [database]
+    environment:
+      POSTGRES_DB: fishing
+      POSTGRES_USER: fishing
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Please configure POSTGRES_PASSWORD in .env}
+    ports:
+      - '127.0.0.1:${DB_PORT:-5432}:5432'
+    volumes:
+      - fishing-db:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U fishing -d fishing']
+      interval: 10s
+      retries: 5
+    restart: unless-stopped
+volumes:
+  fishing-data:
+  fishing-uploads:
+  fishing-db:
